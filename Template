@@ -1,0 +1,449 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Metadata": {
+        "AWS::CloudFormation::Interface": {
+            "ParameterGroups": [
+                {
+                    "Label": {
+                        "default": "XProtect Configuration"
+                    },
+                    "Parameters": [
+                        "XProtectLanguage"
+                    ]
+                },
+                {
+                    "Label": {
+                        "default": "EC2 Configuration"
+                    },
+                    "Parameters": [
+                        "OperatingSystemVolumeSize",
+                        "DeleteOperatingSystemVolume",
+                        "KeyPairName",
+                        "InstanceHostname"
+                    ]
+                },
+                {
+                    "Label": {
+                        "default": "Network Configuration"
+                    },
+                    "Parameters": [
+                        "AvailabilityZone",
+                        "ServerIngressCIDRBlock",
+                        "RDPIngressCIDRBlock",
+                        "VPCCIDRBlock",
+                        "SubnetCIDRBlock"
+                    ]
+                }
+            ],
+            "ParameterLabels": {
+                "XProtectLanguage": {
+                    "default": "XProtect Language"
+                },
+                "OperatingSystemVolumeSize": {
+                    "default": "Operating System Volume Size"
+                },
+                "DeleteOperatingSystemVolume": {
+                    "default": "Delete Operating System Volume"
+                },
+                "KeyPairName": {
+                    "default": "Key Pair Name"
+                },
+                "InstanceHostname": {
+                    "default": "Instance Hostname (optional)"
+                },
+                "AvailabilityZone": {
+                    "default": "Availability Zone"
+                },
+                "ServerIngressCIDRBlock": {
+                    "default": "Server Ingress CIDR Block"
+                },
+                "RDPIngressCIDRBlock": {
+                    "default": "RDP Ingress CIDR Block"
+                },
+                "VPCCIDRBlock": {
+                    "default": "VPC CIDR Block"
+                },
+                "SubnetCIDRBlock": {
+                    "default": "Subnet CIDR Block"
+                }
+            }
+        }
+    },
+    "Parameters": {
+        "ServerIngressCIDRBlock": {
+            "Type": "String",
+            "AllowedPattern": "^([0-9]{1,3}\\.){3}[0-9]{1,3}(\\/([0-9]|[1-2][0-9]|3[0-2]))$",
+            "ConstraintDescription": "The Server Ingress CIDR Block can contain only numbers in the format: X.X.X.X/XX.",
+            "Description": "The CIDR IP block that can access the EC2 instance via HTTP or HTTPS (Install SSL Certificate for HTTPS)."
+        },
+        "VPCCIDRBlock": {
+            "Type": "String",
+            "Default": "10.0.0.0/16",
+            "AllowedPattern": "^([0-9]{1,3}\\.){3}[0-9]{1,3}(\\/([0-9]|[1-2][0-9]|3[0-2]))$",
+            "ConstraintDescription": "The VPC CIDR Block can contain only numbers in the format: X.X.X.X/XX.",
+            "Description": "The CIDR IP block that is allocated to the VPC."
+        },
+        "SubnetCIDRBlock": {
+            "Type": "String",
+            "Default": "10.0.0.0/24",
+            "AllowedPattern": "^([0-9]{1,3}\\.){3}[0-9]{1,3}(\\/([0-9]|[1-2][0-9]|3[0-2]))$",
+            "ConstraintDescription": "The Subnet CIDR Block can contain only numbers in the format: X.X.X.X/XX.",
+            "Description": "The CIDR IP block that is allocated to the EC2 subnet."
+        },
+        "RDPIngressCIDRBlock": {
+            "Type": "String",
+            "AllowedPattern": "^([0-9]{1,3}\\.){3}[0-9]{1,3}(\\/([0-9]|[1-2][0-9]|3[0-2]))$",
+            "ConstraintDescription": "The RDP Ingress CIDR Block can contain only numbers in the format: X.X.X.X/XX.",
+            "Description": "The CIDR IP block that can access the EC2 instance via RDP."
+        },
+        "OperatingSystemVolumeSize": {
+            "Type": "Number",
+            "Default": 150,
+            "Description": "The size in GB of the operating system volume (150GB minimum).",
+            "MinValue": 150
+        },
+        "KeyPairName": {
+            "Type": "AWS::EC2::KeyPair::KeyName",
+            "Description": "The key pair used to decrypt the RDP Windows login password."
+        },
+        "DeleteOperatingSystemVolume": {
+            "Type": "String",
+            "Default": "true",
+            "AllowedValues": [
+                "true",
+                "false"
+            ],
+            "Description": "Delete the operating system volume on termination of the EC2 instance."
+        },
+        "AvailabilityZone": {
+            "Type": "AWS::EC2::AvailabilityZone::Name",
+            "Description": "The availability zone of your EC2 instance."
+        },
+        "InstanceHostname": {
+            "Type": "String",
+            "AllowedPattern": "^((?![0-9]{1,15}$)[a-zA-Z0-9-]{1,15}$)?$",
+            "ConstraintDescription": "The EC2 instance hostname must be 15 characters or less and must not contain any invalid characters such as $, %, ^",
+            "Description": "A custom name for the EC2 instance, also used as the hostname (15 character maximum, cannot be changed after deployment)."
+        },
+        "XProtectLanguage": {
+            "Type": "String",
+            "Default": "en-US",
+            "AllowedValues": [
+                "en-US",
+                "da-DK",
+                "de-DE",
+                "es-ES",
+                "fr-FR",
+                "it-IT",
+                "ja-JP",
+                "ko-KR",
+                "pt-BR",
+                "ru-RU",
+                "sv-SE",
+                "tr-TR",
+                "zh-CN",
+                "zh-TW"
+            ],
+            "Description": "The language of the XProtect VMS software."
+        }
+    },
+    "Mappings": {
+        "RegionMap": {
+            "us-east-1": {
+                "WindowsServer2019": "ami-0cdd7efa739610807"
+            },
+            "us-east-2": {
+                "WindowsServer2019": "ami-02facb3fd59755f26"
+            },
+            "us-west-1": {
+                "WindowsServer2019": "ami-03f8ceb503bff70fa"
+            },
+            "us-west-2": {
+                "WindowsServer2019": "ami-05af7d5063052eeaa"
+            },
+            "af-south-1": {
+                "WindowsServer2019": "ami-070c9d8e1a705ff1e"
+            },
+            "ap-east-1": {
+                "WindowsServer2019": "ami-068e61281a6f858bd"
+            },
+            "ap-southeast-3": {
+                "WindowsServer2019": "ami-0c1e427d5c886e40d"
+            },
+            "ap-south-1": {
+                "WindowsServer2019": "ami-0476f5ef474c70e14"
+            },
+            "ap-northeast-3": {
+                "WindowsServer2019": "ami-06fac181b7d119354"
+            },
+            "ap-northeast-1": {
+                "WindowsServer2019": "ami-061f107c4fd91e124"
+            },
+            "ap-northeast-2": {
+                "WindowsServer2019": "ami-03b1ad874e162d1c3"
+            },
+            "ap-southeast-2": {
+                "WindowsServer2019": "ami-030ddde6c0e796889"
+            },
+            "ap-southeast-1": {
+                "WindowsServer2019": "ami-0529fbbdf29772290"
+            },
+            "ca-central-1": {
+                "WindowsServer2019": "ami-07ed7e3742f3ba8ec"
+            },
+            "eu-central-1": {
+                "WindowsServer2019": "ami-043693271c1dbcd3e"
+            },
+            "eu-west-1": {
+                "WindowsServer2019": "ami-0a0041f9ed31d2eb1"
+            },
+            "eu-west-2": {
+                "WindowsServer2019": "ami-0d2e6b76a83c83666"
+            },
+            "eu-west-3": {
+                "WindowsServer2019": "ami-0834f0fa9b3988664"
+            },
+            "eu-south-1": {
+                "WindowsServer2019": "ami-0d6e320fd875e28de"
+            },
+            "eu-north-1": {
+                "WindowsServer2019": "ami-0ef496bd3f1910484"
+            },
+            "me-south-1": {
+                "WindowsServer2019": "ami-03e780c2c633a9e70"
+            },
+            "me-central-1": {
+                "WindowsServer2019": "ami-0001330ca78e2f737"
+            },
+            "sa-east-1": {
+                "WindowsServer2019": "ami-071dbb35afa7176a9"
+            }
+        }
+    },
+    "Resources": {
+        "VPC": {
+            "Type": "AWS::EC2::VPC",
+            "Properties": {
+                "CidrBlock": {
+                    "Ref": "VPCCIDRBlock"
+                },
+                "EnableDnsHostnames": true,
+                "EnableDnsSupport": true,
+                "InstanceTenancy": "default",
+                "Tags": [
+                    {
+                        "Key": "name",
+                        "Value": "XProtect_VPC"
+                    }
+                ]
+            }
+        },
+        "IG": {
+            "Type": "AWS::EC2::InternetGateway",
+            "Properties": {
+                "Tags": [
+                    {
+                        "Key": "name",
+                        "Value": "XProtect_IG"
+                    }
+                ]
+            }
+        },
+        "AttachIG": {
+            "Type": "AWS::EC2::VPCGatewayAttachment",
+            "Properties": {
+                "VpcId": {
+                    "Ref": "VPC"
+                },
+                "InternetGatewayId": {
+                    "Ref": "IG"
+                }
+            }
+        },
+        "RT": {
+            "Type": "AWS::EC2::RouteTable",
+            "Properties": {
+                "VpcId": {
+                    "Ref": "VPC"
+                },
+                "Tags": [
+                    {
+                        "Key": "name",
+                        "Value": "XProtect_RT"
+                    }
+                ]
+            }
+        },
+        "SUBNET": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+                "CidrBlock": {
+                    "Ref": "SubnetCIDRBlock"
+                },
+                "VpcId": {
+                    "Ref": "VPC"
+                },
+                "AvailabilityZone": {
+                    "Ref": "AvailabilityZone"
+                },
+                "MapPublicIpOnLaunch": true,
+                "Tags": [
+                    {
+                        "Key": "name",
+                        "Value": "XProtect_SUBNET"
+                    }
+                ]
+            }
+        },
+        "AttachRT": {
+            "Type": "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties": {
+                "RouteTableId": {
+                    "Ref": "RT"
+                },
+                "SubnetId": {
+                    "Ref": "SUBNET"
+                }
+            }
+        },
+        "SG": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "GroupDescription": "Configure network traffic to and from the VMS EC2 instance",
+                "Tags": [
+                    {
+                        "Key": "name",
+                        "Value": "XProtect_SG"
+                    }
+                ],
+                "VpcId": {
+                    "Ref": "VPC"
+                },
+                "SecurityGroupEgress": [
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": 80,
+                        "ToPort": 80,
+                        "CidrIp": "0.0.0.0/0"
+                    },
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": 443,
+                        "ToPort": 443,
+                        "CidrIp": "0.0.0.0/0"
+                    }
+                ],
+                "SecurityGroupIngress": [
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": 3389,
+                        "ToPort": 3389,
+                        "CidrIp": {
+                            "Ref": "RDPIngressCIDRBlock"
+                        }
+                    },
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": 8081,
+                        "ToPort": 8082,
+                        "CidrIp": {
+                            "Ref": "ServerIngressCIDRBlock"
+                        }
+                    }
+                ]
+            }
+        },
+        "IMDSv2LaunchTemplate": {
+            "Type": "AWS::EC2::LaunchTemplate",
+            "Properties": {
+                "LaunchTemplateData": {
+                    "MetadataOptions": {
+                        "HttpEndpoint": "enabled",
+                        "HttpTokens": "required"
+                    }
+                }
+            }
+        },
+        "EC2": {
+            "Type": "AWS::EC2::Instance",
+            "Properties": {
+                "LaunchTemplate": {
+                    "LaunchTemplateId": {
+                        "Ref": "IMDSv2LaunchTemplate"
+                    },
+                    "Version": 1
+                },
+                "BlockDeviceMappings": [
+                    {
+                        "DeviceName": "/dev/sda1",
+                        "Ebs": {
+                            "DeleteOnTermination": {
+                                "Ref": "DeleteOperatingSystemVolume"
+                            },
+                            "VolumeSize": {
+                                "Ref": "OperatingSystemVolumeSize"
+                            },
+                            "VolumeType": "gp2"
+                        }
+                    }
+                ],
+                "ImageId": {
+                    "Fn::FindInMap": [
+                        "RegionMap",
+                        {
+                            "Ref": "AWS::Region"
+                        },
+                        "WindowsServer2019"
+                    ]
+                },
+                "InstanceType": "c5.xlarge",
+                "KeyName": {
+                    "Ref": "KeyPairName"
+                },
+                "NetworkInterfaces": [
+                    {
+                        "AssociatePublicIpAddress": true,
+                        "DeviceIndex": "0",
+                        "GroupSet": [
+                            {
+                                "Ref": "SG"
+                            }
+                        ],
+                        "SubnetId": {
+                            "Ref": "SUBNET"
+                        }
+                    }
+                ],
+                "Tags": [
+                    {
+                        "Key": "name",
+                        "Value": "XProtect_EC2"
+                    }
+                ],
+                "UserData": {
+                    "Fn::Base64": {
+                        "Fn::Sub": "<powershell>\r\n# Install Edge browser and create new links for the support shortcuts\nTry {\n    # Get URL form .website shortcut\n    function GetUrl($fileName)\r\n    {\r\n        $content = Get-Content $fileName\r\n\r\n        foreach ($line in $content) {\r\n            if ($line -like 'URL=*') {\r\n               $urlStr = $line\r\n               break\r\n            }\r\n        }\r\n        return $urlStr.Substring(4)\r\n    }\r\n\r\n    # Create a new browser shortcut on the Desktop\r\n    function CreateDesktopBrowserShortCut($url, $shortcutName)\r\n    {\r\n        $wshShell = New-Object -ComObject \"WScript.Shell\"\r\n        $urlShortcut = $wshShell.CreateShortcut((Join-Path $wshShell.SpecialFolders.Item(\"AllUsersDesktop\") $shortcutName)\r\n        )\r\n        $urlShortcut.TargetPath = $url \r\n        $urlShortcut.Save()\r\n    }\n\n    # Install the Edge browser\n    cmd /c start /wait msiexec /i \"C:\\tmp\\MicrosoftEdge\\MicrosoftEdgeEnterpriseX64.msi\" DONOTCREATEDESKTOPSHORTCUT=true /qn /norestart\r\n\r\n    # Set Edge as Default in key regestry\r\n    Set-ItemProperty -Path \"HKCU:\\Software\\Microsoft\\Windows\\Shell\\Associations\\UrlAssociations\\http\\UserChoice\" -Name \"ProgId\" -Value \"MSEdgeHTM\"\r\n    Set-ItemProperty -Path \"HKCU:\\Software\\Microsoft\\Windows\\Shell\\Associations\\UrlAssociations\\https\\UserChoice\" -Name \"ProgId\" -Value \"MSEdgeHTM\"\r\n          \r\n    # Create new browser shortcuts for the .website shortcuts \r\n    $windowsGuideUrl = \"C:\\Users\\Administrator\\Desktop\\EC2 Microsoft Windows Guide.website\"\r\n    $url = GetUrl($windowsGuideUrl).ToString()\r\n    CreateDesktopBrowserShortCut $url \"EC2 Microsoft Windows Guide.url\"\r\n\r\n    $feedbackUrl = \"C:\\Users\\Administrator\\Desktop\\EC2 Feedback.website\"\r\n    $url = GetUrl($feedbackUrl).ToString()\r\n    CreateDesktopBrowserShortCut $url \"EC2 Feedback.url\"\n\n    # Remove old .website shortcuts\n    $wshShell = New-Object -ComObject \"WScript.Shell\"\r\n    $files = Get-ChildItem (Join-Path $wshShell.SpecialFolders.Item(\"Desktop\") \"*.website\")\r\n    foreach ($file in $files) \r\n    {\r\n       Remove-Item $file\r\n    }\n\n    # Disable IE\r\n    dism /online /Disable-Feature /FeatureName:Internet-Explorer-Optional-amd64 /norestart\n\n    if (\"${InstanceHostname}\" -eq \"\" ) {\n        $ec2InitializeScriptLocation = Join-Path $env:ProgramData -ChildPath \"Amazon\\EC2-Windows\\Launch\\Scripts\\InitializeInstance.ps1\"\n        # This schedules initialization script to run again on next boot\n        $ec2InitializeCommand = $ec2InitializeScriptLocation + \" -Schedule\"\n        Invoke-Expression $ec2InitializeCommand\n        # Reboot the computer for edge and explorer changes.\n        Restart-Computer -Force\n    }\n}\nCatch {\n    # Swallow exception for now if any\n}\n\n# Install the VMS etc.\nTry {\n    # If we need to rename; do so now and schedule a new run on next boot\n    # See EC2Launch docs and the script (InitiaizeInstance.ps1) contents for additional info\n    if ((\"${InstanceHostname}\" -ne \"\") -and ($env:computername -ne \"${InstanceHostname}\") ) {\n        $ec2InitializeScriptLocation = Join-Path $env:ProgramData -ChildPath \"Amazon\\EC2-Windows\\Launch\\Scripts\\InitializeInstance.ps1\"\n        # This schedules initialization script to run again on next boot\n        $ec2InitializeCommand = $ec2InitializeScriptLocation + \" -Schedule\"\n        Invoke-Expression $ec2InitializeCommand\n        # Rename the PC. UserData should be re-executed after the reboot passes. \n        Rename-Computer -NewName \"${InstanceHostname}\" -Restart -Force\n    }\n\n    $tempFolder = \"C:\\tmp\\\"\n\t\n    # Unblocking files are a requirement for windows server 2016.\n    # In all the other versions this should not affect the functionality.\n    Get-ChildItem -Path $tempFolder | Unblock-File\n\n    # Pattern match the installer name since it changes with every version.\n    $installerExe = Get-ChildItem $tempFolder -Recurse -Include \"Milestone XProtect VMS Products *.exe\"\n\n    # Pattern match the license file name since it could be change with every version.\n    $licenseFile = Get-ChildItem $tempFolder -Recurse -Include \"*.lic\"\n\n    # Generate arguments file for the installer in order to use custom user parameters\n    $argumentsProcess = Start-Process $installerExe.FullName -ArgumentList \"--generateargsfile=$tempFolder\" -PassThru\n    Wait-Process $argumentsProcess.Id\n\n    # Read the newly created arguments file\n    $argumentsXml = [System.Xml.XmlDocument](Get-Content \"$($tempFolder)Arguments.xml\")\n\n    # Apply user data to the arguments file\n    foreach ($argument in $argumentsXml.ArgumentsXmlV2.Arguments.Argument) {\n        if ($argument.Name -eq \"LANGUAGE\") { \n            $argument.Value = \"${XProtectLanguage}\"\n        }\n    }\n\n    # Save arguments file with modified user data\n    $argumentsXml.Save(\"$($tempFolder)Arguments.xml\");\n\n    # Start the installer and wait for it to finish\n    $vmsProcess = Start-Process $installerExe.FullName -ArgumentList \"--quiet --license=$($licenseFile.FullName) --arguments=$($tempFolder)Arguments.xml\" -PassThru\n    Wait-Process $vmsProcess.Id\n\n    # Check return code from the VMS installation\n    # If error code is 0 everything went fine.\n    # If error code is 3010 it means that system needs to be restarted.\n    $installerLog = \"$env:ProgramData\\Milestone\\Installer\\installer.log\"\n    $errorContent = (Get-Content $installerLog)[-1].Split(' ')[-1]\n    $result = If ($errorContent -eq 0 -or $errorContent -eq 3010) { \"true\" } Else { \"false\" }\n\n    if ($result -eq \"false\")\n    {\n        throw \"An error occured during the installation of Milestone XProtect - please check the logs for more information\"\r\n\t}\n\n    # Check if RS installed - sometimes the VMS fails without a error code\n    $rsService = Get-Service -Name \"Milestone XProtect Recording Server\" -ErrorAction SilentlyContinue\r\n    if($rsService -eq $null)\r\n    {\r\n       # The Recording Server Service does not exist\r\n       throw \"Something went wrong during the installation - the Recording Server was not installed - please check the logs\"\r\n    } \n\n    # Stop recording server service\n    Stop-Service -Name \"Milestone XProtect Recording Server\"\n    (Get-Service -Name \"Milestone XProtect Recording Server\").WaitForStatus('Stopped')\n\n    # Install StableFPS driver\n    $stableFpsBatch = Get-ChildItem $tempFolder -Recurse -Include \"InstallStableFPS.bat\"\n    Start-Process $stableFpsBatch.FullName -ArgumentList \"$($stableFpsBatch.DirectoryName) A 1 vLatest N 1\" -Wait\n\n    # Start recording server service\n    Start-Service -Name \"Milestone XProtect Recording Server\"\n    (Get-Service -Name \"Milestone XProtect Recording Server\").WaitForStatus('Running')\n\n    # Start background job to monitor $env:ProgramData\\Milestone\\XProtect Recording Server\\Logs\\RecorderEngine.log.\n    # From here we can determine when the recording server has done all the initialization work.\n    $recorderEnginejob = Start-Job -ScriptBlock {\n        try {\n            Get-Content -Path \"$env:ProgramData\\Milestone\\XProtect Recording Server\\Logs\\RecorderEngine.log\" -Wait -Tail 0 | ForEach-Object { \n                if ($_.Contains(\"Recording server\") -and $_.Contains(\"started\")) {\n\n                    # The only way to break -Wait with ForEach-Object pipe is to throw exception.\n                    # If we try to use continue, break, return or exit it exits the entire powershell script\n                    # and does not continue execution. Which is not a behavior that we want.\n                    throw [System.OperationCanceledException]::New()\n                }; \n            }\n        }\n        catch [System.OperationCanceledException] {\n            # We swallow this error since it is an expected one.\n            # Read the comment inside ForEach-Object above\n        }\n    }\n\n    # Start background job to monitor $env:ProgramData\\Milestone\\XProtect Recording Server\\Logs\\ClientCommManager.log.\n    # From here we can determine when the recorder information has been st on the server.\n    # These two jobs can tell us when the recording server has scanned all the drivers and initialized the StableFPS\n    $clientCommManagerJob = Start-Job -ScriptBlock {\n        try {\n            Get-Content -Path \"$env:ProgramData\\Milestone\\XProtect Recording Server\\Logs\\ClientCommManager.log\" -Wait -Tail 0 | ForEach-Object { \n                if ($_.Contains(\"Acquire connection point\") -or $_.Contains(\"Recorder information has been set on the server\")) {\n\n                    # The only way to break -Wait with ForEach-Object pipe is to throw exception.\n                    # If we try to use continue, break, return or exit it exits the entire powershell script\n                    # and does not continue execution. Which is not a behavior that we want.\n                    throw [System.OperationCanceledException]::New()\n                }; \n            }\n        }\n        catch [System.OperationCanceledException] {\n            # We swallow this error since it is an expected one.\n            # Read the comment inside ForEach-Object above\n        }\n    }\n\n    # Set a timeout for the two jobs that we created.\n    # If the jobs are not finished by this time we assume that something is wrong.\n    # In that case we signal AWS with error.\n    Get-Job | Wait-Job -Timeout 180\n    if ($recorderEnginejob.State -ne \"Completed\" -or $clientCommManagerJob.State -ne \"Completed\") {\n        throw \"Initialization of the Recording Server failed\"\n    }\n\n    # Make private call to the ec2 instance to get the instance-id metadata in order to use it as a password\n    # for Web Client's default user.\n    $token = Invoke-RestMethod -Headers @{\"X-aws-ec2-metadata-token-ttl-seconds\" = \"21600\"} -Method PUT -Uri http://169.254.169.254/latest/api/token\r\n    $instanceId = Invoke-RestMethod -Headers @{\"X-aws-ec2-metadata-token\" = $token} -Method GET -Uri http://169.254.169.254/latest/meta-data/instance-id\n     \r\n    # Mix the Id and AWS for having capital letter in the text to be used as password for adding ec2-user\r\n    $preString=\"AWS\"\r\n    $MCpass=$preString + $instanceId \r\n\r\n    # When Recording Server is initialized and StableFPS is recognized, \r\n    # we can go ahead and configure SmartClient with StableFPS driver \r\n    Start-Process \"$($tempFolder)AMI Configuration\\AMIConfiguration.exe\" -ArgumentList \"-p $($MCpass)\" -Wait \n  \n    # If we end up here everything went well so just signal success (true) to AWS\n    cfn-signal.exe -s \"true\" --stack=${AWS::StackName} --resource='EC2' --region=${AWS::Region}\n\n    # Cleanup after all operations succeds\n    Remove-Item -Recurse -Force $tempFolder\n\n    # After the installation the machine needs to be restarted for VMS to work correctly\n    Restart-Computer -Force\n}\nCatch {\n    # If something goes wrong during the installation process generate a log file in desktop and signal unsuccesfull (false) status to AWS\n    $errorMessage = $_ | Out-String\n    $output = \"$env:USERPROFILE\\Desktop\\\"\n    New-Item -Path $output -Name \"VMS Error Log.txt\" -ItemType \"file\" -Value \"$($errorMessage)\"\n    cfn-signal.exe -s \"false\" --stack=${AWS::StackName} --resource='EC2' --region=${AWS::Region}\n}\r\n</powershell>"
+                    }
+                }
+            },
+            "CreationPolicy": {
+                "ResourceSignal": {
+                    "Timeout": "PT45M",
+                    "Count": 1
+                }
+            }
+        },
+        "ROUTETOVPC": {
+            "Type": "AWS::EC2::Route",
+            "Properties": {
+                "RouteTableId": {
+                    "Ref": "RT"
+                },
+                "DestinationCidrBlock": "0.0.0.0/0",
+                "GatewayId": {
+                    "Ref": "IG"
+                }
+            }
+        }
+    }
+}
